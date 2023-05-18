@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plazas por especialidad y comunidad</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Reparto de plazas por especialidad y comunidad autónoma</h2>
+        
+        <select id="especialidad"></select>
+        <select id="comunidad"></select>
+        <button id="muestra">Mostrar</button>
+        <div id="infoplazas"></div>    
+        <div id="contenido"></div>
+    </div>
+
+<script>
+        
+window.addEventListener('load', cargarplazas);
+const especialidad2 = document.getElementById('especialidad');
+const comunidad2 = document.getElementById('comunidad');
+let boton_muestra = document.getElementById('muestra');
+let contenido = document.getElementById('contenido');
+let infoplazas = document.getElementById('infoplazas');
+let plazas = cargarplazas();
+
+boton_muestra.addEventListener('click',muestrajson);
+
+
+function Especialidad (auto, cod, plazas, libre, descripcion){
+    this.autonomia = auto;
+    this.codigo = cod;
+    this.plazas = plazas;
+    this.libre = libre;
+    this.descripcion = descripcion;
+
+    this.numeroplazas = function (){
+        let texto = "";
+        this.libre ? texto = "turno libre" : texto = "turno de discapacidad";
+        return this.descripcion + " con código: " + this.codigo + " tiene en " + this.autonomia + " " + this.plazas + " plazas en " + texto;
+    }
+}
+function cargarespecialidades(plazas){
+    let espe = [];
+    for (let i=0;i<plazas.length;i++){
+        espe.push(plazas[i].codigo);
+    }
+    const espesinrepetir = espe.filter((elemento, indice) => {
+        return espe.indexOf(elemento) === indice;
+    });
+    return espesinrepetir;
+}
+function cargarcomunidad(plazas){
+    let comu = [];
+    for (let i=0;i<plazas.length;i++){
+        if (plazas[i].libre){
+            comu.push(plazas[i].autonomia + " Libre");
+        }else{
+            comu.push(plazas[i].autonomia + " Discapacidad");
+        }
+    }
+    return comu;
+}
+
+function cargarplazas(){
+    let plazas = [];
+    let xhr = new XMLHttpRequest();
+    xhr.open("GET", "plazas.json", true);
+    xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+        let json = JSON.parse(xhr.responseText);
+        for (let i=0;i<json.length;i++){
+            var espe = new Especialidad(json[i]["autonomia"],json[i]["especialidad"],json[i]["numero"],json[i]["libre"],json[i]["descripcion"]);
+            plazas.push(espe);
+        }
+    const especialidades = cargarespecialidades(plazas);
+    especialidades.forEach(palabra => {
+        const option = document.createElement('option');
+        option.value = palabra;  // Establece el valor de la opción
+        option.text = palabra;   // Establece el texto visible de la opción
+        especialidad2.appendChild(option);  // Agrega la opción al select
+    });
+    const comunidad = cargarcomunidad(plazas);
+    comunidad.forEach(palabra => {
+        const option = document.createElement('option');
+        option.value = palabra;  // Establece el valor de la opción
+        option.text = palabra;   // Establece el texto visible de la opción
+        comunidad2.appendChild(option);  // Agrega la opción al select
+    });
+
+    return plazas;
+    }
+    };
+    xhr.send();
+}
+
+function muestrajson(plazas){
+    console.log(plazas.length);
+    let codigo = document.getElementById('especialidad').value;
+    let comunidad = document.getElementById('comunidad').value;
+    for (let i=0;i<plazas.length;i++){
+        if (plazas[i].codigo == codigo && plazas[i].autonomia == comunidad){
+            infoplazas.innerHTML = plazas[i].numeroplazas();
+        }
+    }
+    let xhr = new XMLHttpRequest();
+    let nombrefichero = codigo+".json";
+    console.log(nombrefichero);
+    xhr.open("GET", nombrefichero, true);
+    xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+        let json = JSON.parse(xhr.responseText);
+        contenido.innerHTML = "";
+        //contenido.innerHTML = json["Andalucía_L"]["adjudicaciones"][0]["adjudicadoA"]["nombre"];
+        //console.log(json["Andalucía_L"]["adjudicaciones"][0]["adjudicadoA"]["nombre"]);
+        contenido.appendChild(crear_tabla(json["Andalucía_L"]["adjudicaciones"]));
+    }
+    };
+    xhr.send();  
+}
+
+function crear_tabla(json, ruta_tabla){
+    //Creamos la tabla
+    let tabla = document.createElement("table");
+    //Creamos la cabecera
+    let cabecera = document.createElement("tr");
+    let celda = document.createElement("th");
+    let texto = document.createTextNode("Posición");
+    celda.appendChild(texto);
+    cabecera.appendChild(celda);
+    celda = document.createElement("th");
+    texto = document.createTextNode("DNI");
+    celda.appendChild(texto);
+    cabecera.appendChild(celda);
+    celda = document.createElement("th");
+    texto = document.createTextNode("Nombre");
+    celda.appendChild(texto);
+    cabecera.appendChild(celda);
+    celda = document.createElement("th");
+    texto = document.createTextNode("Nota Nacional");
+    celda.appendChild(texto);
+    cabecera.appendChild(celda);
+
+    tabla.appendChild(cabecera);
+    
+    for(let i=0;i<json.length;i++){
+        //Creamos las filas y las celdas
+        let fila = document.createElement("tr");
+        let celda = document.createElement("td");
+        let texto = document.createTextNode(json[i]["pos"]);
+        celda.appendChild(texto);
+        fila.appendChild(celda);
+
+        celda = document.createElement("td");
+        texto = document.createTextNode(json[i]["adjudicadoA"]["dni"]);
+        celda.appendChild(texto);
+        fila.appendChild(celda);
+
+        celda = document.createElement("td");
+        texto = document.createTextNode(json[i]["adjudicadoA"]["nombre"]);
+        celda.appendChild(texto);
+        fila.appendChild(celda);
+
+        celda = document.createElement("td");
+        texto = document.createTextNode(json[i]["adjudicadoA"]["notaNacional"]);
+        celda.appendChild(texto);
+        fila.appendChild(celda);
+
+        tabla.appendChild(fila);
+    }
+    return tabla;
+}
+</script>
+</body>
+</html>
